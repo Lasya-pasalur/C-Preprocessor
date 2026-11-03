@@ -22,7 +22,7 @@ It processes C source files and generates a preprocessed output file (`output.i`
 - String Handling
 - Structures and Pointers
 - Makefile
-- Linux
+
 
 ## Project Structure
 
