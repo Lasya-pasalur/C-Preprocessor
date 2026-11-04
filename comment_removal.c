@@ -3,6 +3,8 @@
 int remove_comments(char input[], char output[])
 {
     int ch, next;
+    int in_string = 0;
+    int in_char = 0;
 
     // Open source file in read mode and output file in write mode
     FILE *fp = fopen(input, "r");
@@ -25,29 +27,68 @@ int remove_comments(char input[], char output[])
     // Read the input file character by character
     while((ch = fgetc(fp)) != EOF)
     {
-        if(ch == '/')
+        // Check whether inside string or character constant
+        if(in_string || in_char)
         {
-            // Read the next character to identify the type of comment
+            fputc(ch, fd);
+
+            // Handle escape sequences
+            if(ch == '\\')
+            {
+                next = fgetc(fp);
+
+                if(next != EOF)
+                    fputc(next, fd);
+            }
+            // Check closing double quote
+            else if(ch == '"' && in_string)
+            {
+                in_string = 0;
+            }
+            // Check closing single quote
+            else if(ch == '\'' && in_char)
+            {
+                in_char = 0;
+            }
+        }
+
+        // Check beginning of string literal
+        else if(ch == '"')
+        {
+            in_string = 1;
+            fputc(ch, fd);
+        }
+
+        // Check beginning of character constant
+        else if(ch == '\'')
+        {
+            in_char = 1;
+            fputc(ch, fd);
+        }
+
+        // Check for comment symbols
+        else if(ch == '/')
+        {
             next = fgetc(fp);
 
-            // Skip single-line comments (//)
+            // Single-line comment
             if(next == '/')
             {
                 while((ch = fgetc(fp)) != '\n' && ch != EOF);
 
-                // Preserve the newline after the comment
+                // Preserve newline
                 if(ch == '\n')
                     fputc('\n', fd);
             }
 
-            // Skip multi-line comments (/* ... */)
+            // Multi-line comment
             else if(next == '*')
             {
                 int prev = 0;
 
                 while((ch = fgetc(fp)) != EOF)
                 {
-                    // Stop when the closing comment symbol (*/) is found
+                    // Identify closing comment delimiter
                     if(prev == '*' && ch == '/')
                         break;
 
@@ -55,25 +96,27 @@ int remove_comments(char input[], char output[])
                 }
             }
 
-            // If '/' is not part of a comment, write it to the output
+            // Normal forward slash
             else
             {
                 fputc(ch, fd);
 
-                // Put the next character back for normal processing
+                // Put back the next character
                 if(next != EOF)
                     ungetc(next, fp);
             }
         }
+
+        // Copy all normal characters
         else
         {
-            // Copy all characters that are not part of comments
             fputc(ch, fd);
         }
     }
 
-printf("Comments removed from %s successfully\n", input);
-    // Close both files after processing
+    printf("Comments removed from %s successfully\n", input);
+
+    // Close both files
     fclose(fp);
     fclose(fd);
 
